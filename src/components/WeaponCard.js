@@ -6,11 +6,6 @@ function WeaponCard({ weapon }) {
   const { item, loading, error } = useDestinyItem(weapon.hash);
   const navigate = useNavigate();
 
-  console.log("WeaponCard - weapon:", weapon);
-  console.log("WeaponCard - item:", item);
-  console.log("WeaponCard - loading:", loading);
-  console.log("WeaponCard - error:", error);
-
   const handleClick = () => {
     navigate(`/item/weapon/${weapon.hash}`);
   };
@@ -50,11 +45,7 @@ function WeaponCard({ weapon }) {
           src={item?.icon || fallbackImage}
           alt={weapon.name}
           onError={(e) => {
-            console.error("Erreur de chargement d'image:", e);
             e.target.src = fallbackImage;
-          }}
-          onLoad={() => {
-            console.log("Image chargée avec succès pour:", weapon.name);
           }}
         />
       </div>

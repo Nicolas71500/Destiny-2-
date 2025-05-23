@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import WeaponCard from "./WeaponCard";
 import weapons from "../data/weapons";
 
@@ -18,9 +18,6 @@ const WeaponList = () => {
     "Neutre",
   ];
 
-  // Forcer un re-render quand les filtres changent
-  const [, forceUpdate] = useState({});
-
   const filteredWeapons = weapons.filter((weapon) => {
     // Si aucun filtre n'est sélectionné ou si "Tous" est sélectionné
     if (!filters.damageType || filters.damageType === "") {
@@ -31,33 +28,13 @@ const WeaponList = () => {
   });
 
   const handleDamageTypeChange = (damageType) => {
-    console.log("Filtre sélectionné:", damageType);
     const newDamageType = damageType === "Tous" ? "" : damageType;
 
     setFilters({
       ...filters,
       damageType: newDamageType,
     });
-
-    // Forcer un re-render
-    forceUpdate({});
   };
-
-  // Debug - afficher les types de dégâts uniques dans la console
-  useEffect(() => {
-    const uniqueDamageTypes = [
-      ...new Set(weapons.map((weapon) => weapon.damage)),
-    ];
-    console.log("Types de dégâts disponibles:", uniqueDamageTypes);
-  }, []);
-
-  console.log("Filtre actuel:", filters.damageType);
-  console.log("Armes filtrées:", filteredWeapons.length);
-  console.log(
-    "Première arme filtrée:",
-    filteredWeapons[0]?.name,
-    filteredWeapons[0]?.damage
-  );
 
   return (
     <div className="armor-list">

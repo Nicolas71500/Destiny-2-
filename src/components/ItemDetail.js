@@ -89,24 +89,14 @@ const ItemDetail = () => {
           alt={item.name}
           className="item-image"
           onError={() => {
-            console.log("Image API échouée pour:", item.name);
             setImageStage("fallback");
           }}
-          onLoad={() =>
-            console.log("Image chargée avec succès pour:", item.name)
-          }
         />
       );
     }
 
     return <FallbackImage />;
   };
-
-  // Debug - afficher les données dans la console
-  console.log("ItemDetail - item:", item);
-  console.log("ItemDetail - apiItem:", apiItem);
-  console.log("ItemDetail - loading:", loading);
-  console.log("ItemDetail - error:", error);
 
   return (
     <div className="item-detail-container">

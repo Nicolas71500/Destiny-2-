@@ -3,30 +3,12 @@ import "./styles/App.css";
 import WeaponList from "./components/WeaponList";
 import ArmorList from "./components/ArmorList";
 import { useManifest } from "./hooks/useDestinyItem";
-import { testKnownHashes } from "./utils/testHashes";
 import ItemDetail from "./components/ItemDetail";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 function App() {
   const [activeTab, setActiveTab] = useState("weapons");
   const { manifestLoaded, loading } = useManifest();
-
-  useEffect(() => {
-    const runTest = async () => {
-      try {
-        // Attendez que le manifest soit chargé AVANT de faire les tests
-        if (manifestLoaded) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          const results = await testKnownHashes();
-          console.log("🎯 Résultats des tests:", results);
-        }
-      } catch (error) {
-        console.error("💥 Erreur lors du test:", error);
-      }
-    };
-
-    runTest();
-  }, [manifestLoaded]); // Déclenché quand manifestLoaded change
 
   // Écran de chargement amélioré
   if (loading || !manifestLoaded) {

@@ -21,8 +21,6 @@ export const useDestinyItem = (itemHash) => {
         setLoading(true);
         setError(null);
 
-        console.log(`🎯 useDestinyItem - Recherche hash: ${itemHash}`);
-
         // Récupérer l'item depuis le manifest local uniquement
         const itemData = await getItemDefinition(itemHash);
 
@@ -34,14 +32,11 @@ export const useDestinyItem = (itemHash) => {
             hash: itemHash,
           };
 
-          console.log(`✨ Item traité:`, processedItem.name);
           setItem(processedItem);
         } else {
-          console.log(`❌ Aucune donnée valide pour l'item: ${itemHash}`);
           setError(`Item ${itemHash} non trouvé`);
         }
       } catch (err) {
-        console.error(`💥 Erreur dans useDestinyItem pour ${itemHash}:`, err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -66,7 +61,7 @@ export const useManifest = () => {
         await downloadManifest();
         setManifestLoaded(true);
       } catch (error) {
-        console.error("Erreur lors de l'initialisation du manifest:", error);
+        setManifestLoaded(false);
       } finally {
         setLoading(false);
       }

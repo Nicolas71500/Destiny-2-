@@ -14,47 +14,45 @@ export const getImageUrl = (iconPath) => {
   return `${BUNGIE_ROOT_URL}${iconPath}`;
 };
 
-// Fonction pour récupérer le manifest (base de données)
-export const getManifest = async () => {
-  try {
-    console.log("📡 Récupération du manifest...");
-    const response = await fetch(`${BUNGIE_BASE_URL}/Destiny2/Manifest/`, {
-      headers,
-    });
+// Fonction pour récupérer le manifest (base de données) avec retry
+export const getManifest = async (retries = 3) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await new Promise((resolve) => setTimeout(resolve, i * 1000)); // Délai progressif
 
-    if (!response.ok) {
-      console.error(`❌ Erreur HTTP ${response.status} pour le manifest`);
-      return null;
+      const response = await fetch(`${BUNGIE_BASE_URL}/Destiny2/Manifest/`, {
+        headers,
+      });
+
+      if (!response.ok) {
+        if (i === retries - 1) return null; // Dernier essai
+        continue; // Retry
+      }
+
+      const data = await response.json();
+      return data.Response;
+    } catch (error) {
+      if (i === retries - 1) return null; // Dernier essai
+      continue; // Retry
     }
-
-    const data = await response.json();
-    console.log("✅ Manifest récupéré avec succès");
-    return data.Response;
-  } catch (error) {
-    console.error("💥 Erreur lors de la récupération du manifest:", error);
-    return null;
   }
+  return null;
 };
 
 // Variables pour stocker le manifest téléchargé
 let manifestData = null;
-let manifestPromise = null; // Pour éviter les téléchargements multiples
+let manifestPromise = null;
 
 // Fonction pour télécharger et parser le manifest
 export const downloadManifest = async () => {
-  // Si déjà en cours de téléchargement, attendre le résultat
   if (manifestPromise) {
-    console.log("⏳ Manifest déjà en cours de téléchargement...");
     return manifestPromise;
   }
 
-  // Si déjà téléchargé, retourner les données
   if (manifestData) {
-    console.log("✅ Manifest déjà disponible en cache");
     return manifestData;
   }
 
-  // Créer la promesse de téléchargement
   manifestPromise = (async () => {
     try {
       const manifest = await getManifest();
@@ -62,14 +60,13 @@ export const downloadManifest = async () => {
         throw new Error("Impossible de récupérer le manifest");
       }
 
-      // Récupérer l'URL du manifest français (ou anglais si pas disponible)
       const manifestUrl =
-        manifest.jsonWorldContentPaths.fr || manifest.jsonWorldContentPaths.en;
+        manifest.jsonWorldContentPaths?.fr ||
+        manifest.jsonWorldContentPaths?.en;
 
-      console.log(
-        "📥 Téléchargement du manifest depuis:",
-        `${BUNGIE_ROOT_URL}${manifestUrl}`
-      );
+      if (!manifestUrl) {
+        throw new Error("URL du manifest non trouvée");
+      }
 
       const response = await fetch(`${BUNGIE_ROOT_URL}${manifestUrl}`);
 
@@ -80,19 +77,10 @@ export const downloadManifest = async () => {
       }
 
       const data = await response.json();
-
       manifestData = data;
-      const itemCount = Object.keys(
-        data.DestinyInventoryItemDefinition || {}
-      ).length;
-      console.log(
-        `🎯 Manifest téléchargé avec succès! ${itemCount} items disponibles`
-      );
-
       return data;
     } catch (error) {
-      console.error("💥 Erreur lors du téléchargement du manifest:", error);
-      manifestPromise = null; // Reset pour pouvoir réessayer
+      manifestPromise = null;
       manifestData = null;
       throw error;
     }
@@ -101,56 +89,33 @@ export const downloadManifest = async () => {
   return manifestPromise;
 };
 
-// Fonction pour récupérer un item depuis le manifest local UNIQUEMENT
+// Fonction pour récupérer un item depuis le manifest local
 export const getItemDefinition = async (itemHash) => {
   try {
-    console.log(`🔍 Recherche de l'item ${itemHash}`);
-
-    // Assurer que le manifest est téléchargé
     if (!manifestData) {
-      console.log("📥 Téléchargement du manifest requis...");
       await downloadManifest();
     }
 
-    // Vérifier que le manifest est disponible
-    if (!manifestData || !manifestData.DestinyInventoryItemDefinition) {
-      console.error("❌ Manifest non disponible");
+    if (!manifestData?.DestinyInventoryItemDefinition) {
       return null;
     }
 
-    // Chercher l'item dans le manifest local
     const item =
       manifestData.DestinyInventoryItemDefinition[itemHash.toString()];
-
-    if (!item) {
-      console.log(`❌ Item ${itemHash} non trouvé dans le manifest`);
-      return null;
-    }
-
-    console.log(
-      `✅ Item ${itemHash} trouvé: ${
-        item.displayProperties?.name || "Nom indisponible"
-      }`
-    );
-    return item;
+    return item || null;
   } catch (error) {
-    console.error(
-      `💥 Erreur lors de la récupération de l'item ${itemHash}:`,
-      error
-    );
     return null;
   }
 };
 
-// Fonction pour tester plusieurs hash et voir lesquels fonctionnent
+// Fonction pour tester plusieurs hash
 export const testMultipleHashes = async (hashList) => {
-  console.log("🧪 Test de plusieurs hash...");
   const results = [];
 
   for (const { name, hash } of hashList) {
     try {
       const item = await getItemDefinition(hash);
-      if (item && item.displayProperties) {
+      if (item?.displayProperties) {
         results.push({
           name,
           hash,
@@ -158,17 +123,14 @@ export const testMultipleHashes = async (hashList) => {
           actualName: item.displayProperties.name,
           icon: item.displayProperties.icon,
         });
-        console.log(`✅ ${name} (${hash}): ${item.displayProperties.name}`);
       } else {
         results.push({
           name,
           hash,
           found: false,
         });
-        console.log(`❌ ${name} (${hash}): Non trouvé`);
       }
     } catch (error) {
-      console.log(`💥 ${name} (${hash}): Erreur - ${error.message}`);
       results.push({
         name,
         hash,
