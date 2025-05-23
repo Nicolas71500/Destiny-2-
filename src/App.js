@@ -14,28 +14,34 @@ function App() {
   useEffect(() => {
     const runTest = async () => {
       try {
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // Attendre 2 secondes
-        const results = await testKnownHashes();
-        console.log("🎯 Résultats des tests:", results);
+        // Attendez que le manifest soit chargé AVANT de faire les tests
+        if (manifestLoaded) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          const results = await testKnownHashes();
+          console.log("🎯 Résultats des tests:", results);
+        }
       } catch (error) {
         console.error("💥 Erreur lors du test:", error);
       }
     };
 
     runTest();
-  }, []);
+  }, [manifestLoaded]); // Déclenché quand manifestLoaded change
 
-  if (loading) {
+  // Écran de chargement amélioré
+  if (loading || !manifestLoaded) {
     return (
       <div className="App">
         <div className="loading-screen">
           <h2>Chargement du manifest Destiny 2...</h2>
           <p>Veuillez patienter, cela peut prendre quelques secondes.</p>
+          {loading && <div className="spinner">⏳</div>}
         </div>
       </div>
     );
   }
 
+  // Seulement affiché quand manifestLoaded === true
   return (
     <Router>
       <div className="App">
