@@ -1,0 +1,38 @@
+{
+  "name": "destiny2-exotic-tracker",
+  "version": "1.0.0",
+  "description": "A React application to track exotic weapons and armors from Destiny 2.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "set CHOKIDAR_USEPOLLING=true && react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.6.0",
+    "react-scripts": "5.0.1"
+  },
+  "keywords": [
+    "destiny2",
+    "exotic",
+    "tracker",
+    "react"
+  ],
+  "author": "",
+  "license": "ISC",
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
