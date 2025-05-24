@@ -261,7 +261,7 @@ app.post("/api/item-details", async (req, res) => {
 
   try {
     const startTime = Date.now();
-    
+
     // 🚀 TRAITEMENT MASSIF EN PARALLÈLE
     const batchSize = 25; // 25 requêtes simultanées !
     const itemDetails = {};
@@ -293,7 +293,7 @@ app.post("/api/item-details", async (req, res) => {
                 itemTypeDisplayName: data.Response.itemTypeDisplayName || "",
                 tierTypeName: data.Response.inventory?.tierTypeName || "",
                 tierType: data.Response.inventory?.tierType || 0,
-              }
+              },
             };
           }
         }
@@ -306,31 +306,41 @@ app.post("/api/item-details", async (req, res) => {
     // 🎯 TRAITE TOUT EN PARALLÈLE PAR BATCHES
     for (let i = 0; i < itemHashes.length; i += batchSize) {
       const batch = itemHashes.slice(i, i + batchSize);
-      
-      console.log(`⚡ Batch ${Math.floor(i/batchSize) + 1}: ${batch.length} items en parallèle`);
+
+      console.log(
+        `⚡ Batch ${Math.floor(i / batchSize) + 1}: ${
+          batch.length
+        } items en parallèle`
+      );
 
       // Lance toutes les requêtes du batch en même temps
       const batchPromises = batch.map(fetchItemDetails);
       const batchResults = await Promise.all(batchPromises);
-      
+
       // Stocke les résultats
-      batchResults.forEach(result => {
+      batchResults.forEach((result) => {
         if (result.success) {
           itemDetails[result.hash] = result.data;
         }
       });
 
-      const successCount = batchResults.filter(r => r.success).length;
-      console.log(`✅ +${successCount} items (Total: ${Object.keys(itemDetails).length})`);
-      
+      const successCount = batchResults.filter((r) => r.success).length;
+      console.log(
+        `✅ +${successCount} items (Total: ${Object.keys(itemDetails).length})`
+      );
+
       // Pause très courte
-      await new Promise(resolve => setTimeout(resolve, 20));
+      await new Promise((resolve) => setTimeout(resolve, 20));
     }
 
     const endTime = Date.now();
     const duration = (endTime - startTime) / 1000;
-    
-    console.log(`🚀 FINI en ${duration}s ! ${Object.keys(itemDetails).length}/${itemHashes.length} items`);
+
+    console.log(
+      `🚀 FINI en ${duration}s ! ${Object.keys(itemDetails).length}/${
+        itemHashes.length
+      } items`
+    );
     res.json(itemDetails);
   } catch (error) {
     console.log("❌ Erreur serveur:", error.message);
@@ -360,4 +370,69 @@ https.createServer(httpsOptions, app).listen(3001, "127.0.0.1", () => {
   console.log("   POST /api/token");
   console.log("   POST /api/user");
   console.log("   GET  /test");
+});
+
+// Ajoute cet endpoint dans api-server.js :
+app.post("/api/character-stats", async (req, res) => {
+  console.log("📊 Route /api/character-stats appelée");
+  const { accessToken, membershipType, membershipId, characterId } = req.body;
+
+  if (!accessToken || !membershipType || !membershipId || !characterId) {
+    return res.status(400).json({ error: "Missing required parameters" });
+  }
+
+  try {
+    const startTime = Date.now();
+
+    // Récupère les stats détaillées avec composants 200 (CharacterActivities) et 302 (ItemInstances)
+    const response = await fetch(
+      `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/Character/${characterId}/?components=200,201,205,300,302,304,305`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "X-API-Key": BUNGIE_API_KEY,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log("❌ Erreur stats:", errorText.substring(0, 200));
+      return res.status(response.status).json({ error: "Erreur API Bungie" });
+    }
+
+    const data = await response.json();
+
+    if (data.ErrorCode !== 1) {
+      return res.status(400).json({ error: data.Message });
+    }
+
+    // Traite les stats du personnage
+    const characterStats = data.Response.character?.data?.stats || {};
+    const equipment = data.Response.equipment?.data?.items || [];
+    const itemInstances = data.Response.itemComponents?.instances?.data || {};
+
+    console.log(
+      "📊 Stats du personnage récupérées:",
+      Object.keys(characterStats)
+    );
+    console.log(
+      "⚔️ Équipements avec instances:",
+      Object.keys(itemInstances).length
+    );
+
+    const endTime = Date.now();
+    console.log(`✅ Stats récupérées en ${(endTime - startTime) / 1000}s`);
+
+    res.json({
+      characterStats,
+      equipment,
+      itemInstances,
+      totalItems: equipment.length,
+    });
+  } catch (error) {
+    console.log("❌ Erreur serveur stats:", error.message);
+    res.status(500).json({ error: error.message });
+  }
 });

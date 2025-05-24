@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useBungieAuth } from "../hooks/useBungieAuth";
+import StatAnalyzer from "./StatAnalyzer";
 
 const CharacterDetail = () => {
   const { characterId } = useParams();
@@ -10,6 +11,8 @@ const CharacterDetail = () => {
   const [itemDetails, setItemDetails] = useState({});
   const [loading, setLoading] = useState(true);
   const [activeSlot, setActiveSlot] = useState("weapons");
+  const [characterStats, setCharacterStats] = useState(null);
+  const [activeTab, setActiveTab] = useState("equipment"); // Nouveau : gestion des onglets
 
   // Trouve le personnage sélectionné
   const character = characters.find((char) => char.id === characterId);
@@ -17,6 +20,7 @@ const CharacterDetail = () => {
   useEffect(() => {
     if (character && selectedPlatform) {
       loadCharacterEquipment();
+      loadCharacterStats(); // ← Ajoute cette ligne
     }
   }, [character, selectedPlatform]);
 
@@ -26,16 +30,19 @@ const CharacterDetail = () => {
       console.log("🔍 Chargement équipements pour:", character.className);
 
       // 1. Récupère les équipements
-      const response = await fetch("https://127.0.0.1:3001/api/character-equipment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accessToken: localStorage.getItem("bungie_access_token"),
-          membershipType: selectedPlatform.membershipType,
-          membershipId: selectedPlatform.membershipId,
-          characterId: characterId
-        }),
-      });
+      const response = await fetch(
+        "https://127.0.0.1:3001/api/character-equipment",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accessToken: localStorage.getItem("bungie_access_token"),
+            membershipType: selectedPlatform.membershipType,
+            membershipId: selectedPlatform.membershipId,
+            characterId: characterId,
+          }),
+        }
+      );
 
       if (response.ok) {
         const equipmentData = await response.json();
@@ -51,26 +58,41 @@ const CharacterDetail = () => {
           allItems.push(...equipmentData.equipment.data.items);
         }
 
-        const uniqueHashes = [...new Set(allItems.map(item => item.itemHash))];
-        console.log("📦 Hashes uniques à récupérer:", uniqueHashes.length, "items");
+        const uniqueHashes = [
+          ...new Set(allItems.map((item) => item.itemHash)),
+        ];
+        console.log(
+          "📦 Hashes uniques à récupérer:",
+          uniqueHashes.length,
+          "items"
+        );
 
         // 3. Récupère TOUS les détails (supprime la limite)
         if (uniqueHashes.length > 0) {
           console.log("🔄 Récupération de TOUS les détails...");
-          
+
           try {
-            const detailsResponse = await fetch("https://127.0.0.1:3001/api/item-details", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ itemHashes: uniqueHashes }), // 🎯 SUPPRIME .slice(0, 5)
-            });
+            const detailsResponse = await fetch(
+              "https://127.0.0.1:3001/api/item-details",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ itemHashes: uniqueHashes }), // 🎯 SUPPRIME .slice(0, 5)
+              }
+            );
 
             console.log("📊 Status détails:", detailsResponse.status);
 
             if (detailsResponse.ok) {
               const details = await detailsResponse.json();
-              console.log("✨ Détails récupérés pour", Object.keys(details).length, "items sur", uniqueHashes.length, "demandés");
-              
+              console.log(
+                "✨ Détails récupérés pour",
+                Object.keys(details).length,
+                "items sur",
+                uniqueHashes.length,
+                "demandés"
+              );
+
               setItemDetails(details);
             } else {
               console.error("❌ Erreur récupération détails");
@@ -88,6 +110,36 @@ const CharacterDetail = () => {
       console.error("❌ Erreur:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCharacterStats = async () => {
+    try {
+      console.log("📊 Chargement des stats pour:", character.className);
+
+      const response = await fetch(
+        "https://127.0.0.1:3001/api/character-stats",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accessToken: localStorage.getItem("bungie_access_token"),
+            membershipType: selectedPlatform.membershipType,
+            membershipId: selectedPlatform.membershipId,
+            characterId: characterId,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const statsData = await response.json();
+        console.log("📊 Stats récupérées:", statsData);
+        setCharacterStats(statsData);
+      } else {
+        console.error("❌ Erreur chargement stats");
+      }
+    } catch (error) {
+      console.error("❌ Erreur stats:", error);
     }
   };
 
@@ -240,85 +292,131 @@ const CharacterDetail = () => {
         </div>
       </div>
 
-      {/* Navigation des slots */}
-      <div className="equipment-navigation">
-        {Object.keys(organizedEquipment).map((slotType) => (
+      {/* Navigation principale */}
+      <div className="main-navigation">
+        <div className="character-tabs">
           <button
-            key={slotType}
-            onClick={() => setActiveSlot(slotType)}
-            className={`slot-tab ${activeSlot === slotType ? "active" : ""}`}
+            onClick={() => setActiveTab("equipment")}
+            className={`tab ${activeTab === "equipment" ? "active" : ""}`}
           >
-            <span className="slot-icon">{getSlotIcon(slotType)}</span>
-            <span className="slot-name">
-              {slotType.charAt(0).toUpperCase() + slotType.slice(1)}
-            </span>
-            <span className="slot-count">
-              ({organizedEquipment[slotType]?.length || 0})
-            </span>
+            ⚔️ Équipements
           </button>
-        ))}
+          <button
+            onClick={() => setActiveTab("stats")}
+            className={`tab ${activeTab === "stats" ? "active" : ""}`}
+          >
+            📊 Statistiques
+          </button>
+        </div>
+
+        {/* Navigation des équipements (seulement si onglet équipement actif) */}
+        {activeTab === "equipment" && (
+          <div className="equipment-navigation">
+            {Object.keys(organizedEquipment).map((slotType) => (
+              <button
+                key={slotType}
+                onClick={() => setActiveSlot(slotType)}
+                className={`slot-tab ${
+                  activeSlot === slotType ? "active" : ""
+                }`}
+              >
+                <span className="slot-icon">{getSlotIcon(slotType)}</span>
+                <span className="slot-name">
+                  {slotType.charAt(0).toUpperCase() + slotType.slice(1)}
+                </span>
+                <span className="slot-count">
+                  ({organizedEquipment[slotType]?.length || 0})
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Contenu des équipements */}
-      <div className="equipment-content">
-        {loading ? (
-          <div className="equipment-loading">
-            <h3>🔄 Chargement des équipements...</h3>
-            <p>Récupération depuis Bungie...</p>
-          </div>
-        ) : (
-          <div className="equipment-grid">
-            {organizedEquipment[activeSlot]?.length > 0 ? (
-              organizedEquipment[activeSlot].map((item, index) => {
-                const details = itemDetails[item.itemHash] || {};
-                const rarityColor = getRarityColor(details.tierType);
-
-                return (
-                  <div
-                    key={item.itemInstanceId || index}
-                    className="equipment-item"
-                    style={{ borderColor: rarityColor }}
-                  >
-                    <div className="item-icon">
-                      {details.icon ? (
-                        <img
-                          src={`https://www.bungie.net${details.icon}`}
-                          alt={details.name || "Item"}
-                          style={{ borderColor: rarityColor }}
-                        />
-                      ) : (
-                        <div className="item-placeholder">
-                          {getSlotIcon(activeSlot)}
-                        </div>
-                      )}
-
-                      {/* Badge de rareté */}
-                      {details.tierTypeName && (
-                        <div
-                          className="rarity-badge"
-                          style={{ backgroundColor: rarityColor }}
-                        >
-                          {details.tierTypeName}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="item-info">
-                      <h4>{details.name || `Item ${index + 1}`}</h4>
-                      <p className="item-type">
-                        {details.itemTypeDisplayName || getBucketName(item.bucketHash)}
-                      </p>
-                      {details.description && (
-                        <p className="item-description">{details.description}</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
+      {/* Contenu principal */}
+      <div className="character-content">
+        {activeTab === "equipment" && (
+          <div className="equipment-content">
+            {loading ? (
+              <div className="equipment-loading">
+                <h3>🔄 Chargement des équipements...</h3>
+                <p>Récupération depuis Bungie...</p>
+              </div>
             ) : (
-              <div className="no-equipment">
-                <h3>📭 Aucun équipement</h3>
-                <p>Aucun équipement trouvé dans cette catégorie</p>
+              <div className="equipment-grid">
+                {organizedEquipment[activeSlot]?.length > 0 ? (
+                  organizedEquipment[activeSlot].map((item, index) => {
+                    const details = itemDetails[item.itemHash] || {};
+                    const rarityColor = getRarityColor(details.tierType);
+
+                    return (
+                      <div
+                        key={item.itemInstanceId || index}
+                        className="equipment-item"
+                        style={{ borderColor: rarityColor }}
+                      >
+                        <div className="item-icon">
+                          {details.icon ? (
+                            <img
+                              src={`https://www.bungie.net${details.icon}`}
+                              alt={details.name || "Item"}
+                              style={{ borderColor: rarityColor }}
+                            />
+                          ) : (
+                            <div className="item-placeholder">
+                              {getSlotIcon(activeSlot)}
+                            </div>
+                          )}
+
+                          {/* Badge de rareté */}
+                          {details.tierTypeName && (
+                            <div
+                              className="rarity-badge"
+                              style={{ backgroundColor: rarityColor }}
+                            >
+                              {details.tierTypeName}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="item-info">
+                          <h4>{details.name || `Item ${index + 1}`}</h4>
+                          <p className="item-type">
+                            {details.itemTypeDisplayName ||
+                              getBucketName(item.bucketHash)}
+                          </p>
+                          {details.description && (
+                            <p className="item-description">
+                              {details.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="no-equipment">
+                    <h3>📭 Aucun équipement</h3>
+                    <p>Aucun équipement trouvé dans cette catégorie</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "stats" && (
+          <div className="stats-content">
+            {characterStats ? (
+              <StatAnalyzer
+                characterStats={characterStats.characterStats}
+                equipment={characterStats.equipment}
+                itemInstances={characterStats.itemInstances}
+              />
+            ) : (
+              <div className="stats-loading">
+                <h3>📊 Chargement des statistiques...</h3>
+                <p>Récupération des données depuis Bungie...</p>
               </div>
             )}
           </div>
