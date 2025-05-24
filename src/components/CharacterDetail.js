@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useBungieAuth } from "../hooks/useBungieAuth";
 import StatAnalyzer from "./StatAnalyzer";
+import BuildOptimizer from "./BuildOptimizer";
 
 const CharacterDetail = () => {
   const { characterId } = useParams();
@@ -20,6 +21,10 @@ const CharacterDetail = () => {
   const [activeSlot, setActiveSlot] = useState("weapons");
   const [characterStats, setCharacterStats] = useState(null);
   const [activeTab, setActiveTab] = useState("equipment");
+
+  // ⭐ AJOUTE CES STATES :
+  const [fullInventory, setFullInventory] = useState(null);
+  const [vaultItems, setVaultItems] = useState(null);
 
   // Trouve le personnage sélectionné
   const character = characters?.find((char) => char.id === characterId);
@@ -61,7 +66,8 @@ const CharacterDetail = () => {
       setLoading(true);
       console.log("🔍 Chargement équipements pour:", character.className);
 
-      const response = await fetch(
+      // === 1. ÉQUIPEMENT ACTUEL DU PERSONNAGE ===
+      const equipmentResponse = await fetch(
         "https://127.0.0.1:3001/api/character-equipment",
         {
           method: "POST",
@@ -75,65 +81,100 @@ const CharacterDetail = () => {
         }
       );
 
-      if (response.ok) {
-        const equipmentData = await response.json();
-        console.log("🎮 Données équipements reçues:", equipmentData);
+      let allItems = [];
+
+      if (equipmentResponse.ok) {
+        const equipmentData = await equipmentResponse.json();
+        console.log("🎮 Équipement du personnage:", equipmentData);
         setCharacterEquipment(equipmentData);
 
-        const allItems = [];
+        // Ajoute l'équipement et l'inventaire du personnage
         if (equipmentData.inventory?.data?.items) {
           allItems.push(...equipmentData.inventory.data.items);
         }
         if (equipmentData.equipment?.data?.items) {
           allItems.push(...equipmentData.equipment.data.items);
         }
+      }
 
-        const uniqueHashes = [
-          ...new Set(allItems.map((item) => item.itemHash)),
-        ];
-        console.log(
-          "📦 Hashes uniques à récupérer:",
-          uniqueHashes.length,
-          "items"
-        );
+      // === 2. INVENTAIRE COMPLET DU COMPTE ===
+      console.log("📦 Récupération de l'inventaire complet...");
 
-        if (uniqueHashes.length > 0) {
-          console.log("🔄 Récupération de TOUS les détails...");
-
-          try {
-            const detailsResponse = await fetch(
-              "https://127.0.0.1:3001/api/item-details",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ itemHashes: uniqueHashes }),
-              }
-            );
-
-            console.log("📊 Status détails:", detailsResponse.status);
-
-            if (detailsResponse.ok) {
-              const details = await detailsResponse.json();
-              console.log(
-                "✨ Détails récupérés pour",
-                Object.keys(details).length,
-                "items sur",
-                uniqueHashes.length,
-                "demandés"
-              );
-
-              setItemDetails(details);
-            } else {
-              console.error("❌ Erreur récupération détails");
-              setItemDetails({});
-            }
-          } catch (detailError) {
-            console.error("❌ Exception détails:", detailError);
-            setItemDetails({});
-          }
+      const fullInventoryResponse = await fetch(
+        "https://127.0.0.1:3001/api/full-inventory",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accessToken: localStorage.getItem("bungie_access_token"),
+            membershipType: selectedPlatform.membershipType,
+            membershipId: selectedPlatform.membershipId,
+          }),
         }
-      } else {
-        console.error("❌ Erreur chargement équipements");
+      );
+
+      if (fullInventoryResponse.ok) {
+        const fullInventoryData = await fullInventoryResponse.json();
+        console.log("🗄️ Inventaire complet:", fullInventoryData);
+        setFullInventory(fullInventoryData);
+
+        // Ajoute TOUS les items de l'inventaire
+        if (fullInventoryData.profileInventory?.data?.items) {
+          allItems.push(...fullInventoryData.profileInventory.data.items);
+        }
+
+        // Ajoute les items de TOUS les personnages
+        if (fullInventoryData.characterInventories?.data) {
+          Object.values(fullInventoryData.characterInventories.data).forEach(
+            (charInv) => {
+              if (charInv.items) {
+                allItems.push(...charInv.items);
+              }
+            }
+          );
+        }
+
+        // Ajoute les items du COFFRE/VAULT
+        if (fullInventoryData.profileInventory?.data?.items) {
+          const vaultItems =
+            fullInventoryData.profileInventory.data.items.filter(
+              (item) => item.bucketHash === 138197802 // Vault bucket
+            );
+          console.log("🏦 Items du coffre:", vaultItems.length);
+          setVaultItems(vaultItems);
+          allItems.push(...vaultItems);
+        }
+      }
+
+      console.log("📊 TOTAL items récupérés:", allItems.length);
+
+      // === 3. RÉCUPÈRE LES DÉTAILS DE TOUS LES ITEMS ===
+      const uniqueHashes = [...new Set(allItems.map((item) => item.itemHash))];
+      console.log("🔍 Hashes uniques à analyser:", uniqueHashes.length);
+
+      if (uniqueHashes.length > 0) {
+        try {
+          const detailsResponse = await fetch(
+            "https://127.0.0.1:3001/api/item-details",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ itemHashes: uniqueHashes }),
+            }
+          );
+
+          if (detailsResponse.ok) {
+            const details = await detailsResponse.json();
+            console.log(
+              "✨ Détails récupérés pour",
+              Object.keys(details).length,
+              "items"
+            );
+            setItemDetails(details);
+          }
+        } catch (detailError) {
+          console.error("❌ Exception détails:", detailError);
+        }
       }
     } catch (error) {
       console.error("❌ Erreur:", error);
@@ -164,6 +205,16 @@ const CharacterDetail = () => {
         const statsData = await response.json();
         console.log("📊 Stats récupérées:", statsData);
         setCharacterStats(statsData);
+
+        // ⭐ AJOUTE AUSSI les itemInstances globales
+        if (statsData.itemInstances) {
+          console.log(
+            "🎯 ItemInstances disponibles:",
+            Object.keys(statsData.itemInstances).length
+          );
+        } else {
+          console.log("❌ Pas d'itemInstances dans les stats");
+        }
       } else {
         console.error("❌ Erreur chargement stats");
       }
@@ -324,6 +375,12 @@ const CharacterDetail = () => {
           >
             📊 Statistiques
           </button>
+          <button
+            onClick={() => setActiveTab("optimizer")}
+            className={`tab ${activeTab === "optimizer" ? "active" : ""}`}
+          >
+            🎯 Optimisateur
+          </button>
         </div>
 
         {/* Navigation des équipements (seulement si onglet équipement actif) */}
@@ -424,6 +481,26 @@ const CharacterDetail = () => {
 
         {activeTab === "stats" && (
           <div className="stats-content">
+            {/* 🔍 DEBUG COMPLET AVANT STATANALYZER */}
+            {(() => {
+              console.log("🎯 === DEBUG STATS POUR STATANALYZER ===");
+              console.log("characterStats disponible:", !!characterStats);
+              console.log(
+                "characterStats.characterStats:",
+                characterStats?.characterStats
+              );
+              console.log(
+                "Clés des stats:",
+                Object.keys(characterStats?.characterStats || {})
+              );
+              console.log(
+                "Valeurs des stats:",
+                Object.values(characterStats?.characterStats || {})
+              );
+              console.log("=== FIN DEBUG STATS ===");
+              return null;
+            })()}
+
             {characterStats ? (
               <StatAnalyzer
                 characterStats={characterStats.characterStats}
@@ -436,6 +513,36 @@ const CharacterDetail = () => {
                 <p>Récupération des données depuis Bungie...</p>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === "optimizer" && (
+          <div className="optimizer-content">
+            {/* 🔍 DEBUG COMPLET DES PROPS */}
+            {(() => {
+              console.log("🎯 === DEBUG PROPS BUILDOPTIMIZER ===");
+              console.log("characterStats:", characterStats);
+              console.log(
+                "characterStats?.itemInstances:",
+                characterStats?.itemInstances
+              );
+              console.log(
+                "Nombre d'itemInstances:",
+                Object.keys(characterStats?.itemInstances || {}).length
+              );
+              console.log("fullInventory:", !!fullInventory);
+              console.log("=== FIN DEBUG ===");
+              return null;
+            })()}
+
+            <BuildOptimizer
+              characterStats={characterStats?.characterStats}
+              equipment={characterStats?.equipment}
+              itemInstances={characterStats?.itemInstances || {}}
+              inventory={characterEquipment?.inventory?.data?.items}
+              fullInventory={fullInventory}
+              vaultItems={vaultItems}
+            />
           </div>
         )}
       </div>

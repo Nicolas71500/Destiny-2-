@@ -372,67 +372,125 @@ https.createServer(httpsOptions, app).listen(3001, "127.0.0.1", () => {
   console.log("   GET  /test");
 });
 
-// Ajoute cet endpoint dans api-server.js :
+// ⭐ CORRIGE LA ROUTE /api/character-stats :
+
 app.post("/api/character-stats", async (req, res) => {
-  console.log("📊 Route /api/character-stats appelée");
-  const { accessToken, membershipType, membershipId, characterId } = req.body;
-
-  if (!accessToken || !membershipType || !membershipId || !characterId) {
-    return res.status(400).json({ error: "Missing required parameters" });
-  }
-
   try {
-    const startTime = Date.now();
+    const { accessToken, membershipType, membershipId, characterId } = req.body;
 
-    // Récupère les stats détaillées avec composants 200 (CharacterActivities) et 302 (ItemInstances)
+    console.log("📊 Récupération stats complètes pour:", characterId);
+
+    // ⭐ RÉCUPÈRE LE PROFIL COMPLET AVEC TOUS LES PERSONNAGES
     const response = await fetch(
-      `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/Character/${characterId}/?components=200,201,205,300,302,304,305`,
+      `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=200,201,205,300`,
       {
-        method: "GET",
         headers: {
-          Authorization: `Bearer ${accessToken}`,
           "X-API-Key": BUNGIE_API_KEY,
+          Authorization: `Bearer ${accessToken}`,
         },
       }
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.log("❌ Erreur stats:", errorText.substring(0, 200));
+      console.error("❌ Erreur Bungie API:", response.status);
       return res.status(response.status).json({ error: "Erreur API Bungie" });
     }
 
     const data = await response.json();
 
-    if (data.ErrorCode !== 1) {
-      return res.status(400).json({ error: data.Message });
-    }
+    // ⭐ RÉCUPÈRE LES STATS DEPUIS LA BONNE SOURCE (characters.data)
+    const allCharacters = data.Response?.characters?.data || {};
+    const characterStats = allCharacters[characterId]?.stats || {};
 
-    // Traite les stats du personnage
-    const characterStats = data.Response.character?.data?.stats || {};
-    const equipment = data.Response.equipment?.data?.items || [];
-    const itemInstances = data.Response.itemComponents?.instances?.data || {};
+    // ⭐ RÉCUPÈRE L'ÉQUIPEMENT DEPUIS characterEquipment
+    const allCharacterEquipment = data.Response?.characterEquipment?.data || {};
+    const equipment = allCharacterEquipment[characterId]?.items || [];
 
+    // ⭐ RÉCUPÈRE LES ITEMINSTANCES
+    let itemInstances = data.Response?.itemInstances?.data || {};
+
+    // ⭐ DEBUG COMPLET
+    console.log(`📊 AllCharacters trouvés:`, Object.keys(allCharacters));
     console.log(
-      "📊 Stats du personnage récupérées:",
+      `📊 Stats du personnage ${characterId}:`,
       Object.keys(characterStats)
     );
+    console.log(`📊 Exemple de stat:`, Object.entries(characterStats)[0]);
+    console.log(`⚔️ Équipement: ${equipment.length} items`);
     console.log(
-      "⚔️ Équipements avec instances:",
-      Object.keys(itemInstances).length
+      `🎯 ItemInstances: ${Object.keys(itemInstances).length} instances`
     );
 
-    const endTime = Date.now();
-    console.log(`✅ Stats récupérées en ${(endTime - startTime) / 1000}s`);
+    // ⭐ VÉRIFICATION: Si pas de stats, c'est un problème majeur
+    if (Object.keys(characterStats).length === 0) {
+      console.log("❌ AUCUNE STAT TROUVÉE !");
+      console.log("🔍 Structure data.Response:", Object.keys(data.Response));
+      console.log("🔍 AllCharacters:", allCharacters);
+      console.log("🔍 Character spécifique:", allCharacters[characterId]);
+    } else {
+      console.log("✅ Stats trouvées:", Object.keys(characterStats).length);
+      // Log quelques stats pour debug
+      Object.entries(characterStats)
+        .slice(0, 3)
+        .forEach(([hash, stat]) => {
+          console.log(`  📈 Stat ${hash}: ${stat.value || stat}`);
+        });
+    }
 
+    // ⭐ RETOURNE LA STRUCTURE ATTENDUE
     res.json({
-      characterStats,
-      equipment,
-      itemInstances,
-      totalItems: equipment.length,
+      characterStats, // Les vraies stats du personnage
+      equipment, // L'équipement du personnage
+      itemInstances, // Toutes les instances d'items
     });
   } catch (error) {
-    console.log("❌ Erreur serveur stats:", error.message);
-    res.status(500).json({ error: error.message });
+    console.error("❌ Erreur serveur character-stats:", error);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ⭐ AJOUTE CETTE ROUTE AVANT LA ROUTE character-stats :
+
+app.post("/api/full-inventory", async (req, res) => {
+  try {
+    const { accessToken, membershipType, membershipId } = req.body;
+
+    console.log("🗄️ Récupération inventaire complet pour:", membershipId);
+
+    const response = await fetch(
+      `https://www.bungie.net/Platform/Destiny2/${membershipType}/Profile/${membershipId}/?components=102,103,201,205,300`,
+      {
+        headers: {
+          "X-API-Key": BUNGIE_API_KEY,
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error("❌ Erreur inventaire complet:", response.status);
+      return res.status(response.status).json({ error: "Erreur API Bungie" });
+    }
+
+    const data = await response.json();
+    console.log("✅ Inventaire complet récupéré");
+
+    const profileItems =
+      data.Response?.profileInventory?.data?.items?.length || 0;
+    const charInventories = Object.keys(
+      data.Response?.characterInventories?.data || {}
+    ).length;
+    const itemInstances = Object.keys(
+      data.Response?.itemInstances?.data || {}
+    ).length;
+
+    console.log(`📦 Items du profil: ${profileItems}`);
+    console.log(`👤 Inventaires personnages: ${charInventories}`);
+    console.log(`🎯 ItemInstances: ${itemInstances}`);
+
+    res.json(data.Response);
+  } catch (error) {
+    console.error("❌ Erreur serveur inventaire:", error);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
