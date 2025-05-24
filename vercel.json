@@ -1,0 +1,4 @@
+{
+  "devCommand": "HOST=127.0.0.1 HTTPS=true SSL_CRT_FILE=./ssl/127.0.0.1.pem SSL_KEY_FILE=./ssl/127.0.0.1-key.pem npm start",
+  "framework": "create-react-app"
+}

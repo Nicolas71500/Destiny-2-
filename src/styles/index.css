@@ -62,3 +62,424 @@ h1, h2, h3 {
     font-size: 0.9em;
     color: #666;
 }
+
+.characters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 25px;
+  padding: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.character-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border: 2px solid transparent;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.character-card:hover {
+  transform: translateY(-10px) scale(1.02);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  border-color: currentColor;
+}
+
+.character-card.selected {
+  border-color: #00d4ff;
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+}
+
+.character-image-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+
+.character-emblem-fallback {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.character-emblem-fallback::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, 
+    rgba(0, 0, 0, 0.3) 0%, 
+    rgba(0, 0, 0, 0.7) 100%);
+}
+
+.character-overlay {
+  position: relative;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.character-class {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.class-icon {
+  font-size: 1.5em;
+}
+
+.class-name {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #fff;
+}
+
+.character-level {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.level, .light {
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #fff;
+}
+
+.light {
+  color: #ffd700;
+}
+
+.character-info {
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.character-info h4 {
+  margin: 0 0 15px 0;
+  font-size: 1.4em;
+  font-weight: bold;
+  color: #fff;
+  text-align: center;
+}
+
+.character-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  border-left: 4px solid currentColor;
+}
+
+.stat-label {
+  opacity: 0.9;
+  font-size: 0.95em;
+}
+
+.stat-value {
+  font-weight: bold;
+  font-size: 1.05em;
+}
+
+/* Animations */
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.6); }
+}
+
+.character-card:hover .light {
+  animation: glow 2s infinite;
+}
+
+.guardians-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.guardians-page h2 {
+  text-align: center;
+  color: #fff;
+  font-size: 2.5em;
+  margin-bottom: 10px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.platform-info {
+  text-align: center;
+  color: #ccc;
+  font-size: 1.1em;
+  margin-bottom: 30px;
+  opacity: 0.8;
+}
+
+.loading-container, .error-container, .no-characters {
+  text-align: center;
+  padding: 50px 20px;
+  color: #fff;
+}
+
+.loading-container h2 {
+  color: #00d4ff;
+  margin-bottom: 20px;
+}
+
+.error-container h2 {
+  color: #ff6b6b;
+  margin-bottom: 20px;
+}
+
+.no-characters h2 {
+  color: #ffa500;
+  margin-bottom: 20px;
+}
+
+/* === BOUTON DE CONNEXION DESTINY === */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 60px 40px;
+  text-align: center;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  max-width: 500px;
+  width: 100%;
+}
+
+.login-title {
+  font-size: 3em;
+  font-weight: 300;
+  color: #fff;
+  margin-bottom: 20px;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.8);
+  letter-spacing: 2px;
+}
+
+.login-subtitle {
+  font-size: 1.2em;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 40px;
+  line-height: 1.5;
+}
+
+.login-button {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  border: none;
+  border-radius: 16px;
+  padding: 18px 40px;
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 8px 25px rgba(243, 156, 18, 0.3);
+  position: relative;
+  overflow: hidden;
+  min-width: 200px;
+}
+
+.login-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.login-button:hover::before {
+  left: 100%;
+}
+
+.login-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(243, 156, 18, 0.4);
+  background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+}
+
+.login-button:active {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(243, 156, 18, 0.3);
+}
+
+.login-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.2);
+}
+
+/* === LOADING STATE === */
+.login-button.loading {
+  background: linear-gradient(135deg, #555 0%, #666 100%);
+  box-shadow: 0 8px 25px rgba(85, 85, 85, 0.3);
+}
+
+.login-button.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid transparent;
+  border-top: 2px solid #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* === DESTINY LOGO/ICON === */
+.destiny-logo {
+  font-size: 4em;
+  margin-bottom: 30px;
+  opacity: 0.8;
+  filter: drop-shadow(0 0 20px rgba(243, 156, 18, 0.5));
+}
+
+/* === FEATURES LIST === */
+.login-features {
+  margin-top: 40px;
+  text-align: left;
+}
+
+.login-features h4 {
+  color: #fff;
+  font-size: 1.1em;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95em;
+}
+
+.feature-icon {
+  color: #f39c12;
+  font-weight: bold;
+}
+
+/* === RESPONSIVE LOGIN === */
+@media (max-width: 768px) {
+  .login-card {
+    padding: 40px 30px;
+    margin: 20px;
+  }
+
+  .login-title {
+    font-size: 2.2em;
+  }
+
+  .login-subtitle {
+    font-size: 1.1em;
+  }
+
+  .login-button {
+    padding: 16px 32px;
+    font-size: 1em;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 30px 20px;
+  }
+
+  .login-title {
+    font-size: 1.8em;
+  }
+
+  .destiny-logo {
+    font-size: 3em;
+  }
+}
+
+/* === ANIMATIONS DESTINY === */
+@keyframes destiny-glow {
+  0%, 100% {
+    text-shadow: 0 0 20px rgba(243, 156, 18, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 30px rgba(243, 156, 18, 0.8), 0 0 40px rgba(243, 156, 18, 0.3);
+  }
+}
+
+.login-title {
+  animation: destiny-glow 3s ease-in-out infinite;
+}
+
+/* === SUCCESS MESSAGE === */
+.login-success {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-weight: 500;
+  box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+}
+
+/* === ERROR MESSAGE === */
+.login-error {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-weight: 500;
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
