@@ -6,30 +6,61 @@ import StatAnalyzer from "./StatAnalyzer";
 const CharacterDetail = () => {
   const { characterId } = useParams();
   const navigate = useNavigate();
-  const { characters, selectedPlatform } = useBungieAuth();
+
+  // ⭐ TOUS LES HOOKS EN PREMIER (sans conditions)
+  const {
+    characters,
+    selectedPlatform,
+    loading: authLoading,
+  } = useBungieAuth();
+
   const [characterEquipment, setCharacterEquipment] = useState(null);
   const [itemDetails, setItemDetails] = useState({});
   const [loading, setLoading] = useState(true);
   const [activeSlot, setActiveSlot] = useState("weapons");
   const [characterStats, setCharacterStats] = useState(null);
-  const [activeTab, setActiveTab] = useState("equipment"); // Nouveau : gestion des onglets
+  const [activeTab, setActiveTab] = useState("equipment");
 
   // Trouve le personnage sélectionné
-  const character = characters.find((char) => char.id === characterId);
+  const character = characters?.find((char) => char.id === characterId);
 
+  // ⭐ useEffect APRÈS tous les autres hooks
   useEffect(() => {
     if (character && selectedPlatform) {
       loadCharacterEquipment();
-      loadCharacterStats(); // ← Ajoute cette ligne
+      loadCharacterStats();
     }
   }, [character, selectedPlatform]);
 
+  // ⭐ MAINTENANT les conditions de rendu (après tous les hooks)
+  if (authLoading || !characters) {
+    return (
+      <div className="character-detail-loading">
+        <h2>🔄 Chargement du personnage...</h2>
+        <div className="spinner">⏳</div>
+        <p>Récupération des données depuis Bungie...</p>
+      </div>
+    );
+  }
+
+  if (!character) {
+    return (
+      <div className="character-detail-error">
+        <h2>❌ Personnage non trouvé</h2>
+        <p>Le personnage avec l'ID {characterId} n'existe pas.</p>
+        <button onClick={() => navigate("/")} className="back-btn">
+          Retour aux gardiens
+        </button>
+      </div>
+    );
+  }
+
+  // ⭐ Toutes tes fonctions restent identiques
   const loadCharacterEquipment = async () => {
     try {
       setLoading(true);
       console.log("🔍 Chargement équipements pour:", character.className);
 
-      // 1. Récupère les équipements
       const response = await fetch(
         "https://127.0.0.1:3001/api/character-equipment",
         {
@@ -49,7 +80,6 @@ const CharacterDetail = () => {
         console.log("🎮 Données équipements reçues:", equipmentData);
         setCharacterEquipment(equipmentData);
 
-        // 2. Récupère tous les hashes d'items pour les détails
         const allItems = [];
         if (equipmentData.inventory?.data?.items) {
           allItems.push(...equipmentData.inventory.data.items);
@@ -67,7 +97,6 @@ const CharacterDetail = () => {
           "items"
         );
 
-        // 3. Récupère TOUS les détails (supprime la limite)
         if (uniqueHashes.length > 0) {
           console.log("🔄 Récupération de TOUS les détails...");
 
@@ -77,7 +106,7 @@ const CharacterDetail = () => {
               {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ itemHashes: uniqueHashes }), // 🎯 SUPPRIME .slice(0, 5)
+                body: JSON.stringify({ itemHashes: uniqueHashes }),
               }
             );
 
@@ -157,11 +186,11 @@ const CharacterDetail = () => {
 
   const getRarityColor = (tierType) => {
     const colors = {
-      2: "#1eac20", // Uncommon (Vert)
-      3: "#5076a3", // Rare (Bleu)
-      4: "#522f65", // Legendary (Violet)
-      5: "#ceae33", // Exotic (Jaune)
-      6: "#c3a019", // Exotic (Or)
+      2: "#ffffff", // ✅ Commun = Blanc
+      3: "#1eac20", // ✅ Peu commun = Vert
+      4: "#5076a3", // ✅ Rare = Bleu
+      5: "#522f65", // ✅ Légendaire = Violet
+      6: "#ceae33", // ✅ Exotique = Doré/Jaune
     };
     return colors[tierType] || "#666";
   };
@@ -227,7 +256,6 @@ const CharacterDetail = () => {
     };
   };
 
-  // Fonction pour obtenir le nom du bucket
   const getBucketName = (bucketHash) => {
     const bucketNames = {
       1498876634: "Arme Primaire",
@@ -245,17 +273,6 @@ const CharacterDetail = () => {
     };
     return bucketNames[bucketHash] || `Bucket ${bucketHash}`;
   };
-
-  if (!character) {
-    return (
-      <div className="character-detail-error">
-        <h2>❌ Personnage non trouvé</h2>
-        <button onClick={() => navigate("/")} className="back-btn">
-          Retour aux gardiens
-        </button>
-      </div>
-    );
-  }
 
   const organizedEquipment = organizeEquipment(characterEquipment);
 

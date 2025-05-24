@@ -1,9 +1,7 @@
 import React from "react";
 import { useBungieAuth } from "../hooks/useBungieAuth";
-import PlatformSelector from "./PlatformSelector";
 import CharacterSelector from "./CharacterSelector";
 import CharacterDetails from "./CharacterDetails";
-import { CHARACTER_CLASSES } from "../services/bungie-auth";
 
 const CharacterManager = () => {
   const {
@@ -72,11 +70,19 @@ const CharacterManager = () => {
 
         {selectedCharacter && (
           <div className="details-panel">
-            <CharacterDetails
-              character={selectedCharacter}
-              characterDetails={characterDetails}
-              platformName={selectedPlatform?.platformName}
-            />
+            {/* Affiche un loader si le personnage est sélectionné mais les détails ne sont pas encore chargés */}
+            {!characterDetails ? (
+              <div className="character-details-loading">
+                <h3>Chargement des détails du personnage...</h3>
+                <div className="spinner">⏳</div>
+              </div>
+            ) : (
+              <CharacterDetails
+                character={selectedCharacter}
+                characterDetails={characterDetails}
+                platformName={selectedPlatform?.platformName}
+              />
+            )}
           </div>
         )}
       </div>
